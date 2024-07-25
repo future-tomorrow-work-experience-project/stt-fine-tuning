@@ -9,29 +9,16 @@ import torch
 from transformers import WhisperTokenizer
 
 '''
-모든 모델은 모델명과 버전으로 구분해요.
-
-ex) 
-    model_name = "openai/whisper-base"
-    model_version = 3
-    
-결과는 test_log_path에 저장되어요.
-
-사용법 참고: https://pss2947.atlassian.net/issues/SCRUM-40?filter=10007
+만들어진 모델의 성능을 테스트하는 코드에요. 테스트 시 직접 만든 디스코드 회의 음성 데이터셋을 사용해요.
 '''
 
 #########################################################################################################################################
 ################################################### 사용자 설정 변수 #####################################################################
 #########################################################################################################################################
 
-# model_names = ["openai/whisper-base"]
-# model_version = 29
-# model_names = ["SungBeom/whisper-small-ko"]
-# model_version = 1
+model_names = ['maxseats/SungBeom-whisper-small-ko-set8']     # 사용할 모델 이름 / 여러개 지정 가능
 
-model_name = 'maxseats/SungBeom-whisper-small-ko-set8'
-
-data_num = 75   # 테스트 데이터 개수
+data_num = 75                                                 # 테스트 데이터 개수 지정
 test_log_path = "/content/drive/MyDrive/STT_test/test_log"    # 테스트 결과 및 로그 저장위치
 data_directory = "discord_dataset"                            # 데이터셋 폴더 지정
 
@@ -40,12 +27,9 @@ data_directory = "discord_dataset"                            # 데이터셋 폴
 #########################################################################################################################################
 
 
-# 모델 이름 및 버전 설정
-model_names = [model_name]
-
 # 폴더가 없을 경우에만 실행
 if not os.path.exists(data_directory):
-    gdown.download(id="12xNoD53zFqnkYYyeKm_box2gFR0WRCjb", output="dataset.zip", quiet=False)   # 데이터셋 다운로드
+    gdown.download(id="12xNoD53zFqnkYYyeKm_box2gFR0WRCjb", output="dataset.zip", quiet=False)   # 데이터셋 다운로드 / 구글 드라이브 공유 링크 id 사용
 
     # unzip
     os.system("unzip dataset.zip")
