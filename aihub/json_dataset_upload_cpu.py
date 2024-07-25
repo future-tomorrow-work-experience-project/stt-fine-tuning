@@ -7,7 +7,9 @@
 # !pip install jiwer
 # !pip install nlptutti
 # !huggingface-cli login --token token
-
+'''
+데이터셋을 허깅페이스로 업로드하는 파일이에요. 이 코드는 CPU로 작동해요.
+'''
 import os
 import json
 from pydub import AudioSegment
@@ -20,12 +22,12 @@ import shutil
 
 # 사용자 지정 변수를 설정해요.
 
-set_num = 12                                                                       # 데이터셋 번호
+set_num = 12                                                                      # 데이터셋 번호
 token = "hf_"                                   # 허깅페이스 토큰
 CACHE_DIR = '/mnt/a/maxseats/.cache_' + str(set_num)                              # 허깅페이스 캐시 저장소 지정
 dataset_name = "maxseats/aihub-464-preprocessed-680GB-set-" + str(set_num)        # 허깅페이스에 올라갈 데이터셋 이름
 model_name = "SungBeom/whisper-small-ko"                                          # 대상 모델 / "openai/whisper-base"
-batch_size = 500                                                                 # 배치사이즈 지정, 8000이면 에러 발생
+batch_size = 500                                                                  # 배치사이즈 지정, 8000이면 에러 발생
 
 json_path = '/mnt/a/maxseats/mp3_dataset.json'                                    # 생성한 json 데이터셋 위치
 
