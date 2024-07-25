@@ -6,6 +6,22 @@ from metrics import compute_metrics
 
 
 def create_trainer(components: Dict) -> Seq2SeqTrainer:
+    """
+    Seq2Seq 모델을 훈련하기 위한 Seq2SeqTrainer 객체를 생성합니다.
+
+    Args:
+        components (Dict): 훈련자를 생성하는 데 필요한 구성 요소를 포함하는 딕셔너리입니다.
+            - tokenizer: 입력 데이터를 토큰화하는 데 사용되는 토크나이저입니다.
+            - metric: 모델의 성능을 평가하는 데 사용되는 메트릭입니다.
+            - training_args: 훈련자를 구성하는 훈련 인자입니다.
+            - model: 훈련될 Seq2Seq 모델입니다.
+            - preprocessed_dataset: 전처리된 훈련 및 검증 데이터셋을 포함하는 딕셔너리입니다.
+            - data_collator: 입력 데이터를 배치 처리하는 데 사용되는 데이터 콜레이터입니다.
+            - processor: 특성 추출에 사용되는 프로세서입니다.
+
+    Returns:
+        Seq2SeqTrainer: 생성된 Seq2SeqTrainer 객체입니다.
+    """
     tokenizer = components["tokenizer"]
     metric = components["metric"]
     compute_metrics_fn = partial(compute_metrics, tokenizer=tokenizer, metric=metric)
