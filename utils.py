@@ -20,6 +20,12 @@ def find_git_repo():
 
 
 def get_git_user_name():
+    """
+    Git 사용자 이름을 가져오는 함수입니다.
+
+    Returns:
+        str: Git 사용자 이름. 가져오는 데 실패한 경우 None을 반환합니다.
+    """
     try:
         result = subprocess.run(
             ['git', 'config', '--get', 'user.name'],
