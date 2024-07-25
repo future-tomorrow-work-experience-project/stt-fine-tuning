@@ -25,13 +25,13 @@ import pandas as pd
 #   ./unzip_all_recursive.sh
 # AI hub 데이터셋 압축 해제 후 하나의 폴더에 모든 파일을 담아주는 명령어
 
-DIR_PATH = os.path.dirname(os.path.dirname(__file__))   # .git이 있는 작업 폴더 경로
-DATA_DIR = os.path.join(DIR_PATH, 'maxseats-ignore/discord_dataset') # os.path.join(DIR_PATH, "Test") # 압축 해제된 파일들 있는 폴더
-CACHE_DIR = os.getenv("HF_HOME", "/mnt/a/.cache/huggingface")    # 허깅페이스 캐시 저장소 지정 / 테스트 :  os.path.join(DIR_PATH, "cache_test")
+DIR_PATH = os.path.dirname(os.path.dirname(__file__))                   # .git이 있는 작업 폴더 경로
+DATA_DIR = os.path.join(DIR_PATH, 'maxseats-ignore/discord_dataset')    # os.path.join(DIR_PATH, "Test") # 압축 해제된 파일들 있는 폴더
+CACHE_DIR = os.getenv("HF_HOME", "/mnt/a/.cache/huggingface")           # 허깅페이스 캐시 저장소 지정 / 테스트 :  os.path.join(DIR_PATH, "cache_test")
 
-dataset_name = "maxseats/mp3-test-dataset-tmp" # 허깅페이스에 올라갈 데이터셋 이름
-model_name = "SungBeom/whisper-small-ko" # "openai/whisper-base"
-token = "hf_ExampleToken" # 허깅페이스 토큰
+dataset_name = "maxseats/mp3-test-dataset-tmp"                          # 허깅페이스에 올라갈 데이터셋 이름
+model_name = "SungBeom/whisper-small-ko"                                # "openai/whisper-base"
+token = "hf_ExampleToken"                                               # 허깅페이스 토큰
 
 feature_extractor = WhisperFeatureExtractor.from_pretrained(model_name)
 tokenizer = WhisperTokenizer.from_pretrained(model_name, language="Korean", task="transcribe")
@@ -42,6 +42,15 @@ def exclude_json_files(file_names: list) -> list:
 
 
 def get_label_list(directory):
+    """
+    디렉토리 내의 텍스트 파일 목록을 가져와서 반환합니다.
+
+    Parameters:
+        directory (str): 파일 목록을 가져올 디렉토리 경로
+
+    Returns:
+        list: 디렉토리 내의 텍스트 파일 경로 목록
+    """
     # 빈 리스트 생성
     label_files = []
 
@@ -55,6 +64,15 @@ def get_label_list(directory):
 
 
 def get_audio_list(directory):
+    """
+    주어진 디렉토리에서 오디오 파일 목록을 가져옵니다.
+
+    Parameters:
+        directory (str): 오디오 파일이 있는 디렉토리 경로
+
+    Returns:
+        list: 오디오 파일 경로의 리스트
+    """
     # 빈 리스트 생성
     audio_files = []
 
@@ -67,6 +85,15 @@ def get_audio_list(directory):
     return audio_files
 
 def bracket_preprocess(text):
+    """
+    주어진 텍스트에서 괄호 전처리를 수행합니다.
+    
+    Args:
+        text (str): 전처리를 수행할 텍스트
+        
+    Returns:
+        str: 전처리가 완료된 텍스트
+    """
     
     # 1단계: o/ n/ 글자/ 과 같이. 앞 뒤에 ) ( 가 오지않는 /슬래쉬 는 모두 제거합니다. o,n 이 붙은 경우 해당 글자도 함께 제거합니다.
     text = re.sub(r'\b[o|n]/', '', text)
@@ -78,6 +105,15 @@ def bracket_preprocess(text):
     return text
 
 def prepare_dataset(batch):
+    """
+    데이터셋을 준비하는 함수입니다.
+
+    Args:
+        batch (dict): 데이터 배치를 나타내는 딕셔너리입니다.
+
+    Returns:
+        dict: 'input_features'와 'labels'만 포함한 새로운 딕셔너리입니다.
+    """
     # 오디오 파일을 16kHz로 로드
     audio = batch["audio"]
 
