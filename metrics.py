@@ -1,4 +1,15 @@
 def compute_metrics(pred, tokenizer, metric):
+    """
+    주어진 예측값과 레이블로부터 CER(Character Error Rate)를 계산하는 함수입니다.
+
+    Args:
+        pred (object): 예측값을 포함하는 객체입니다.
+        tokenizer (object): 토크나이저 객체입니다.
+        metric (object): CER 계산을 위한 메트릭 객체입니다.
+
+    Returns:
+        dict: CER 값을 담은 딕셔너리입니다.
+    """
     pred_ids = pred.predictions
     label_ids = pred.label_ids
 
