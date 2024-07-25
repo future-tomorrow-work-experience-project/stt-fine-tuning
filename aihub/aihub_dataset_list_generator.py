@@ -23,11 +23,31 @@ datasetkeys = [
 
 
 def run_command(mode: str, datasetkey: str) -> subprocess.CompletedProcess:
+    """
+    주어진 모드와 데이터셋 키를 사용하여 명령어를 실행합니다.
+
+    Parameters:
+        mode (str): 실행 모드 (list 또는 download)
+        datasetkey (str): 데이터셋 키
+
+    Returns:
+        subprocess.CompletedProcess: 명령어 실행 결과
+    """
     commands = ["aihubshell", "-mode", mode, "-datasetkey", datasetkey]    
     return subprocess.run(commands, capture_output=True, text=True)
 
 
 def save_list_to_file(strings: list[str], filename: str) -> None:
+    """
+    주어진 문자열 리스트를 파일에 저장합니다.
+
+    Parameters:
+        strings (list[str]): 저장할 문자열 리스트
+        filename (str): 저장할 파일의 이름
+
+    Returns:
+        None
+    """
     directory = os.path.join(os.path.dirname(__file__), 'dataset_list')
     os.makedirs(directory, exist_ok=True)
 
