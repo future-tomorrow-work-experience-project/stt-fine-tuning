@@ -9,17 +9,16 @@ import pandas as pd
 import shutil
 
 # 사용자 지정 변수를 설정해요.
-
 # DATA_DIR = '/mnt/a/maxseats/(주의-원본-680GB)주요 영역별 회의 음성인식 데이터' # 데이터셋이 저장된 폴더
 DATA_DIR = '/mnt/a/maxseats/(주의-원본)split_files/set_2'  # 10GB 단위 데이터
 
 # 원천, 라벨링 데이터 폴더 지정
 json_base_dir = DATA_DIR
 audio_base_dir = DATA_DIR
-output_dir = '/mnt/a/maxseats/(주의-원본)clips_set_2'                     # 가공된 데이터셋이 저장될 폴더
+output_dir = '/mnt/a/maxseats/(주의-원본)clips_set_2'                # 가공된 데이터셋이 저장될 폴더
 token = "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"                     # 허깅페이스 토큰
 CACHE_DIR = '/mnt/a/maxseats/.cache'                                # 허깅페이스 캐시 저장소 지정
-dataset_name = "maxseats/aihub-464-preprocessed-680GB-set-2"              # 허깅페이스에 올라갈 데이터셋 이름
+dataset_name = "maxseats/aihub-464-preprocessed-680GB-set-2"        # 허깅페이스에 올라갈 데이터셋 이름
 model_name = "SungBeom/whisper-small-ko"                            # 대상 모델 / "openai/whisper-base"
 
 
@@ -32,7 +31,15 @@ os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
 '''
 
 def bracket_preprocess(text):
+    """
+    괄호를 전처리하는 함수입니다.
     
+    Args:
+        text (str): 전처리할 텍스트
+        
+    Returns:
+        str: 전처리된 텍스트
+    """
     # 정규 표현식을 사용하여 패턴 제거
     text = re.sub(r'/\([^\)]+\)', '', text)  # /( *) 패턴 제거, /(...) 형식 제거
     text = re.sub(r'[()]', '', text)         # 개별적으로 등장하는 ( 및 ) 제거
@@ -40,6 +47,17 @@ def bracket_preprocess(text):
     return text.strip()
 
 def process_audio_and_subtitle(json_path, audio_base_dir, output_dir):
+    """
+    주어진 JSON 파일과 오디오 파일을 처리하여 오디오 클립과 텍스트 파일을 추출하고 저장합니다.
+
+    Parameters:
+        json_path (str): JSON 파일의 경로
+        audio_base_dir (str): 오디오 파일이 있는 기본 디렉토리 경로
+        output_dir (str): 추출된 오디오 클립과 텍스트 파일을 저장할 디렉토리 경로
+
+    Returns:
+        None
+    """
     # JSON 파일 읽기
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -100,6 +118,17 @@ def process_audio_and_subtitle(json_path, audio_base_dir, output_dir):
     print(f"Deleted audio file: {audio_file}")
 
 def process_all_files(json_base_dir, audio_base_dir, output_dir):
+    """
+    주어진 디렉토리에서 JSON 파일을 처리하고, 처리된 파일을 삭제합니다.
+
+    Parameters:
+    json_base_dir (str): JSON 파일이 위치한 디렉토리 경로
+    audio_base_dir (str): 오디오 파일이 위치한 디렉토리 경로
+    output_dir (str): 처리된 파일을 저장할 디렉토리 경로
+
+    Returns:
+    None
+    """
     json_files = []
     
     # JSON 파일 목록 생성
@@ -141,6 +170,15 @@ def exclude_json_files(file_names: list) -> list:
 
 
 def get_label_list(directory):
+    """
+    디렉토리 내의 텍스트 파일 목록을 가져와서 반환합니다.
+
+    Parameters:
+        directory (str): 파일 목록을 가져올 디렉토리 경로
+
+    Returns:
+        list: 디렉토리 내의 텍스트 파일 경로 목록
+    """
     # 빈 리스트 생성
     label_files = []
 
@@ -154,6 +192,15 @@ def get_label_list(directory):
 
 
 def get_audio_list(directory):
+    """
+    주어진 디렉토리에서 '.wav'나 '.mp3' 확장자를 가진 오디오 파일의 경로를 리스트로 반환합니다.
+
+    Parameters:
+    directory (str): 오디오 파일이 위치한 디렉토리 경로
+
+    Returns:
+    list: 오디오 파일의 경로를 담은 리스트
+    """
     # 빈 리스트 생성
     audio_files = []
 
@@ -166,19 +213,29 @@ def get_audio_list(directory):
     return audio_files
 
 def prepare_dataset(batch):
+    """
+    주어진 배치 데이터를 처리하여 데이터셋을 준비하는 함수입니다.
+
+    Args:
+        batch (dict): 처리할 배치 데이터. 다음 키를 포함해야 합니다:
+            - "audio" (dict): 오디오 데이터를 포함하는 딕셔너리. 다음 키를 포함해야 합니다:
+                - "array" (ndarray): 오디오 데이터 배열.
+                - "sampling_rate" (int): 샘플링 주파수.
+            - "transcripts" (list): 텍스트 변환 결과를 포함하는 리스트.
+
+    Returns:
+        dict: 처리된 데이터셋. 다음 키를 포함합니다:
+            - "input_features" (ndarray): 입력 특성 데이터.
+            - "labels" (ndarray): 레이블 데이터.
+    """
     # 오디오 파일을 16kHz로 로드
     audio = batch["audio"]
 
     # input audio array로부터 log-Mel spectrogram 변환
     batch["input_features"] = feature_extractor(audio["array"], sampling_rate=audio["sampling_rate"]).input_features[0]
 
-
     # target text를 label ids로 변환
     batch["labels"] = tokenizer(batch["transcripts"]).input_ids
-    
-    # 'audio'와 'transcripts' 컬럼 제거
-    # del batch["audio"]
-    # del batch["transcripts"]
     
     # 'input_features'와 'labels'만 포함한 새로운 딕셔너리 생성
     return {"input_features": batch["input_features"], "labels": batch["labels"]}
