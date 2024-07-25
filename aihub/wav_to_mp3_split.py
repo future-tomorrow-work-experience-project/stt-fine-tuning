@@ -8,7 +8,7 @@ from transformers import WhisperFeatureExtractor, WhisperTokenizer
 import pandas as pd
 import shutil
 
-# mp3로 변환해서 저장하기 까지만 진행하는 코드에요.
+# wav파일을 mp3로 변환해서 발화 데이터로 split 후, 저장하기 까지 진행하는 코드에요.
 
 
 # 사용자 지정 변수를 설정해요.
@@ -28,7 +28,15 @@ output_dir = '/mnt/a/maxseats/(주의-원본)clips/set_3'                     # 
 '''
 
 def bracket_preprocess(text):
+    """
+    괄호 전처리를 수행하는 함수입니다.
     
+    Args:
+        text (str): 전처리할 텍스트
+        
+    Returns:
+        str: 전처리된 텍스트
+    """
     # 정규 표현식을 사용하여 패턴 제거
     text = re.sub(r'/\([^\)]+\)', '', text)  # /( *) 패턴 제거, /(...) 형식 제거
     text = re.sub(r'[()]', '', text)         # 개별적으로 등장하는 ( 및 ) 제거
@@ -36,6 +44,17 @@ def bracket_preprocess(text):
     return text.strip()
 
 def process_audio_and_subtitle(json_path, audio_base_dir, output_dir):
+    """
+    주어진 JSON 파일과 오디오 파일을 처리하여 오디오 클립과 텍스트 파일을 추출하고 저장합니다.
+
+    Parameters:
+        json_path (str): JSON 파일의 경로
+        audio_base_dir (str): 오디오 파일이 있는 기본 디렉토리 경로
+        output_dir (str): 추출된 오디오 클립과 텍스트 파일을 저장할 디렉토리 경로
+
+    Returns:
+        None
+    """
     # JSON 파일 읽기
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -96,6 +115,14 @@ def process_audio_and_subtitle(json_path, audio_base_dir, output_dir):
     print(f"Deleted audio file: {audio_file}")
 
 def process_all_files(json_base_dir, audio_base_dir, output_dir):
+    """
+    주어진 디렉토리에서 JSON 파일을 처리하고, 오디오와 자막을 추출하여 출력 디렉토리에 저장합니다.
+
+    Parameters:
+        json_base_dir (str): JSON 파일이 있는 기본 디렉토리 경로
+        audio_base_dir (str): 오디오 파일이 있는 기본 디렉토리 경로
+        output_dir (str): 추출된 오디오와 자막을 저장할 디렉토리 경로
+    """
     json_files = []
     
     # JSON 파일 목록 생성
@@ -112,6 +139,12 @@ def process_all_files(json_base_dir, audio_base_dir, output_dir):
         os.remove(json_file)
         print(f"Deleted JSON file: {json_file}")
 
+
+
+'''
+start_set ~ end_set 까지의 데이터셋을 처리해요. / 각 셋 마다 10GB의 용량이고, 혀깅페이스에 업로드 되어있는 이름 기준이에요.
+mp3, txt형태의 발화데이터로 분리해서 하나의 폴더로 저장하는 과정을 거칩니다.
+'''
 start_set = 3
 end_set = 68
 
@@ -142,6 +175,15 @@ def exclude_json_files(file_names: list) -> list:
 
 
 def get_label_list(directory):
+    """
+    디렉토리 내의 텍스트 파일 목록을 반환하는 함수입니다.
+
+    Parameters:
+        directory (str): 파일 목록을 가져올 디렉토리 경로
+
+    Returns:
+        list: 디렉토리 내의 텍스트 파일 경로 목록
+    """
     # 빈 리스트 생성
     label_files = []
 
@@ -155,6 +197,15 @@ def get_label_list(directory):
 
 
 def get_audio_list(directory):
+    """
+    주어진 디렉토리에서 '.wav'나 '.mp3' 확장자를 가진 오디오 파일의 목록을 반환합니다.
+
+    Parameters:
+    directory (str): 오디오 파일을 검색할 디렉토리 경로
+
+    Returns:
+    list: '.wav'나 '.mp3' 확장자를 가진 오디오 파일의 경로 목록
+    """
     # 빈 리스트 생성
     audio_files = []
 
@@ -167,12 +218,24 @@ def get_audio_list(directory):
     return audio_files
 
 def prepare_dataset(batch):
+    """
+    데이터셋을 준비하는 함수입니다.
+
+    Args:
+        batch (dict): 데이터 배치를 나타내는 딕셔너리. 다음 키를 포함합니다:
+            - "audio" (dict): 오디오 정보를 담고 있는 딕셔너리. 다음 키를 포함합니다:
+                - "array" (ndarray): 오디오 배열
+                - "sampling_rate" (int): 샘플링 주파수
+            - "transcripts" (list): 텍스트 변환 결과를 담고 있는 리스트
+
+    Returns:
+        dict: "input_features"와 "labels"만 포함한 새로운 딕셔너리
+    """
     # 오디오 파일을 16kHz로 로드
     audio = batch["audio"]
 
     # input audio array로부터 log-Mel spectrogram 변환
     batch["input_features"] = feature_extractor(audio["array"], sampling_rate=audio["sampling_rate"]).input_features[0]
-
 
     # target text를 label ids로 변환
     batch["labels"] = tokenizer(batch["transcripts"]).input_ids
