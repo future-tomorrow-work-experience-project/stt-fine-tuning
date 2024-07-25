@@ -8,6 +8,17 @@ from config.config_manager import get_config, get_components
 from utils import get_git_user_name
 
 def main():
+    """
+    주요 기능:
+    - 설정 파일을 가져와서 구성 요소를 가져옵니다.
+    - 테스트 모드인 경우 유효한 데이터셋의 10%만 사용합니다.
+    - MLflow를 설정하고 실험을 시작합니다.
+    - 훈련 및 평가를 수행하고 결과를 MLflow에 로깅합니다.
+    - 모델을 MLflow에 등록합니다.
+    
+    Returns:
+        metrics (dict): 모델 평가 메트릭스를 포함하는 딕셔너리
+    """
     config = get_config()  # yaml 파일과 argparse를 통해 받은 args를 합친 config 불러오기
     components = get_components(config)  # model, dataset, trainig_arguments, ... 등을 불러오기
     
@@ -60,11 +71,11 @@ def main():
         for key, value in metrics.items():
             mlflow.log_metric(key, value)
         
-        model_uri = f"runs:/{run.info.run_id}/{config["training_args"]["output_dir"]}"
+        model_uri = f"runs:/{run.info.run_id}/{config['training_args']['output_dir']}"
         model_name = config["model_name"].replace("/", "-")
         registered_model = mlflow.register_model(model_uri, model_name)
         
-        print(f"Logged dataset metadata and model with CER: {metrics["eval_cer"]:0.4f}")
+        print(f"Logged dataset metadata and model with CER: {metrics['eval_cer']:0.4f}")
         print(f"Registered model: {registered_model.name}, version: {registered_model.version}")
 
     return metrics
