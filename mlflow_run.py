@@ -16,12 +16,15 @@ from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
                           WhisperForConditionalGeneration, WhisperProcessor,
                           WhisperTokenizer)
 
-model_dir = "./tmp"  # 수정 X
+model_dir = "./tmp"  # 수정 X   # 모델 임시 저장 디렉토리
 
 
 #########################################################################################################################################
 ################################################### 사용자 설정 변수 #####################################################################
 #########################################################################################################################################
+
+
+token = "huggingface_token"
 
 model_description = """
 - 파인튜닝 데이터셋 : maxseats/aihub-464-preprocessed-680GB-set-12-testing
@@ -77,6 +80,15 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     processor: Any
 
     def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
+        """
+        입력된 피처들을 처리하여 패딩된 배치를 반환하는 메서드입니다.
+
+        Args:
+            features (List[Dict[str, Union[List[int], torch.Tensor]]]): 입력 피처들의 리스트입니다.
+
+        Returns:
+            Dict[str, torch.Tensor]: 패딩된 배치입니다.
+        """
         # 인풋 데이터와 라벨 데이터의 길이가 다르며, 따라서 서로 다른 패딩 방법이 적용되어야 한다. 그러므로 두 데이터를 분리해야 한다.
         # 먼저 오디오 인풋 데이터를 간단히 토치 텐서로 반환하는 작업을 수행한다.
         input_features = [{"input_features": feature["input_features"]} for feature in features]
@@ -101,6 +113,15 @@ class DataCollatorSpeechSeq2SeqWithPadding:
 
 
 def compute_metrics(pred):
+    """
+    모델의 예측 결과와 실제 레이블을 사용하여 CER(Character Error Rate)를 계산합니다.
+
+    Args:
+        pred: 모델의 예측 결과를 담은 객체
+
+    Returns:
+        dict: CER 값을 담은 딕셔너리
+    """
     pred_ids = pred.predictions
     label_ids = pred.label_ids
 
@@ -125,9 +146,6 @@ def check_GPU():
         device = torch.device('cpu')
         print("GPU is not available. Using CPU.")
     return device
-# 토큰 입력 - maxseats 토큰으로 고정
-token = "토큰"
-subprocess.run(["huggingface-cli", "login", "--token", token])
 
 
 # model_dir, ./repo 초기화
@@ -177,6 +195,15 @@ def get_model_variable(model_name, device):
     return processor, tokenizer, feature_extractor, model, data_collator, metric
 
 def login_huggingface(token):
+    """
+    Hugging Face에 로그인하는 함수입니다.
+
+    Parameters:
+        token (str): Hugging Face API 토큰
+
+    Returns:
+        None
+    """
     while True: # 로그인
         if token =="exit":
             break
@@ -270,8 +297,9 @@ def preprocess_batch(batch):
 
 #############################################################   MAIN 시작   ############################################################################
 
+subprocess.run(["huggingface-cli", "login", "--token", token])
 
-for set_num in range(5, 13): # 학습할 데이터셋 번호 지정
+for set_num in range(5, 13): # 학습할 데이터셋 번호 지정 - 5부터 12까지
 
     model_description = f"""
     - 파인튜닝 데이터셋 : maxseats/aihub-464-preprocessed-680GB-set-{set_num}
