@@ -1,3 +1,6 @@
+'''
+데이터 전처리와 허깅페이스 업로드를 동시에 실행하는 코드에요.
+'''
 # !pip install -U accelerate
 # !pip install -U transformers
 # !pip install datasets
@@ -34,6 +37,15 @@ def exclude_json_files(file_names: list) -> list:
 
 
 def get_label_list(directory):
+    """
+    디렉토리 내의 텍스트 파일 목록을 반환합니다.
+
+    Parameters:
+        directory (str): 텍스트 파일을 검색할 디렉토리 경로
+
+    Returns:
+        list: 디렉토리 내의 텍스트 파일 경로 목록
+    """
     label_files = []
 
     # 디렉토리 내 txt파일 목록
@@ -45,6 +57,15 @@ def get_label_list(directory):
 
 
 def get_audio_list(directory):
+    """
+    주어진 디렉토리에서 오디오 파일 목록을 가져옵니다.
+
+    Parameters:
+        directory (str): 오디오 파일이 있는 디렉토리 경로
+
+    Returns:
+        list: 오디오 파일 경로의 리스트
+    """
     audio_files = []
 
     # 디렉토리 내 오디오 파일 목록
@@ -55,6 +76,15 @@ def get_audio_list(directory):
     return audio_files
 
 def prepare_dataset(batch):
+    """
+    데이터셋을 준비하는 함수입니다.
+
+    Args:
+        batch (dict): 데이터 배치를 나타내는 딕셔너리입니다.
+
+    Returns:
+        dict: 'input_features'와 'labels'만 포함한 새로운 딕셔너리입니다.
+    """
     # 오디오 파일을 16kHz로 로드
     audio = batch["audio"]
 
@@ -74,6 +104,15 @@ def prepare_dataset(batch):
 
 # 파일 경로 참조해서 오디오, 정답 라벨 불러오기
 def getLabels(output_dir):
+    """
+    주어진 디렉토리에서 레이블 데이터를 가져와서 데이터프레임으로 반환합니다.
+
+    Parameters:
+    output_dir (str): 레이블 데이터와 오디오 파일이 저장된 디렉토리 경로
+
+    Returns:
+    pandas.DataFrame: 레이블과 오디오 파일 경로를 포함하는 데이터프레임
+    """
     
     label_data = get_label_list(output_dir)
     audio_data = get_audio_list(output_dir)
@@ -92,7 +131,16 @@ def getLabels(output_dir):
 
 # Sampling rate 16,000khz 전처리 + 라벨 전처리를 통해 데이터셋 생성
 def df_transform(batch_size, prepare_dataset):
-    # 오디오 파일 경로를 dict의 "audio" 키의 value로 넣고 이를 데이터셋으로 변환
+    """
+    데이터프레임을 변환하여 데이터셋을 생성하는 함수입니다.
+
+    Args:
+        batch_size (int): 배치 크기입니다.
+        prepare_dataset (callable): 데이터셋을 준비하는 함수입니다.
+
+    Returns:
+        Dataset: 변환된 전체 데이터셋입니다.
+    """
     batches = []
     for i in tqdm(range(0, len(df), batch_size), desc="Processing batches"):
         batch_df = df.iloc[i:i+batch_size]
@@ -115,6 +163,15 @@ def df_transform(batch_size, prepare_dataset):
 
 # 데이터셋을 훈련 데이터와 테스트 데이터, 밸리데이션 데이터로 분할
 def make_dataset(full_dataset):
+    """
+    데이터셋을 생성하는 함수입니다.
+
+    Parameters:
+        full_dataset (Dataset): 전체 데이터셋
+
+    Returns:
+        datasets (DatasetDict): 학습, 테스트, 검증 데이터셋으로 구성된 DatasetDict 객체
+    """
     train_testvalid = full_dataset.train_test_split(test_size=0.2)
     test_valid = train_testvalid["test"].train_test_split(test_size=0.5)
     datasets = DatasetDict(
@@ -126,7 +183,17 @@ def make_dataset(full_dataset):
 
 # 허깅페이스 로그인 후, 최종 데이터셋을 업로드
 def upload_huggingface(dataset_name, datasets, token):
+    """
+    Hugging Face에 데이터셋을 업로드하는 함수입니다.
     
+    Parameters:
+        dataset_name (str): 업로드할 데이터셋의 이름입니다.
+        datasets (object): Hugging Face의 datasets 모듈을 사용하여 생성된 데이터셋 객체입니다.
+        token (str): Hugging Face API 토큰입니다.
+        
+    Returns:
+        None
+    """
     while True:
         
         if token =="exit":
