@@ -1,3 +1,6 @@
+'''
+압축 해제된 파일들 이름을 전처리 조건에 맞게 변경 후 하나의 폴더로 모으는 코드에요.
+'''
 import os
 import shutil
 
@@ -14,6 +17,17 @@ wav_prefix = '[원천]'
 
 # 디렉터리 구분 및 리스트 생성 함수
 def get_source_dirs(base_dir, label_prefix, wav_prefix):
+    """
+    해당 디렉토리에서 레이블 디렉토리와 wav 디렉토리의 경로를 가져옵니다.
+
+    Args:
+        base_dir (str): 기본 디렉토리 경로
+        label_prefix (str): 레이블 디렉토리 이름에 포함되는 접두사
+        wav_prefix (str): wav 디렉토리 이름에 포함되는 접두사
+
+    Returns:
+        tuple: 레이블 디렉토리 경로 리스트, wav 디렉토리 경로 리스트
+    """
     label_dirs = []
     wav_dirs = []
     
@@ -30,6 +44,17 @@ def get_source_dirs(base_dir, label_prefix, wav_prefix):
 
 # 파일 이동 및 이름 변경 함수
 def move_and_rename_files(source_dirs, target_dir, file_extension):
+    """
+    주어진 소스 디렉토리에서 특정 확장자를 가진 파일들을 이동하고 이름을 변경합니다.
+
+    Parameters:
+        source_dirs (list): 이동할 파일들이 있는 소스 디렉토리들의 리스트
+        target_dir (str): 파일들을 이동할 대상 디렉토리
+        file_extension (str): 이동할 파일들의 확장자
+
+    Returns:
+        None
+    """
     for source_dir in source_dirs:
         for root, _, files in os.walk(source_dir):
             for file in tqdm(files):

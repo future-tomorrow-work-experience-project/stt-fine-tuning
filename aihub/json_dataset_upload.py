@@ -7,7 +7,9 @@
 # !pip install jiwer
 # !pip install nlptutti
 # !huggingface-cli login --token token
-
+'''
+데이터셋을 허깅페이스로 업로드하는 코드에요. GPU로 작동해요.
+'''
 import os
 import json
 from pydub import AudioSegment
@@ -39,6 +41,13 @@ print('현재 데이터셋 : ', 'set_', set_num)
 # FeatureExtractor 클래스 정의
 class FeatureExtractor:
     def __init__(self, sample_rate=16000, n_mels=64):
+        """
+        FeatureExtractor 클래스의 생성자입니다.
+
+        Args:
+            sample_rate (int, optional): 오디오 샘플링 속도입니다. 기본값은 16000입니다.
+            n_mels (int, optional): Mel 스펙트로그램의 빈 수입니다. 기본값은 64입니다.
+        """
         self.sample_rate = sample_rate
         self.n_mels = n_mels
         self.mel_spectrogram_transform = transforms.MelSpectrogram(
@@ -48,10 +57,25 @@ class FeatureExtractor:
         self.amplitude_to_db = transforms.AmplitudeToDB()
     
     def to_device(self, device):
+        """
+        Mel 스펙트로그램 변환에 사용되는 텐서들을 지정된 디바이스로 이동시킵니다.
+
+        Args:
+            device (torch.device): 이동시킬 디바이스입니다.
+        """
         self.mel_spectrogram_transform.spectrogram.window = self.mel_spectrogram_transform.spectrogram.window.to(device)
         self.mel_spectrogram_transform.mel_scale.fb = self.mel_spectrogram_transform.mel_scale.fb.to(device)
         
     def __call__(self, audio_tensor):
+        """
+        주어진 오디오 텐서를 Mel 스펙트로그램으로 변환합니다.
+
+        Args:
+            audio_tensor (torch.Tensor): 변환할 오디오 텐서입니다.
+
+        Returns:
+            torch.Tensor: 변환된 log-Mel 스펙트로그램 텐서입니다.
+        """
         # Mel 스펙트로그램 변환
         mel_spectrogram = self.mel_spectrogram_transform(audio_tensor)
         # log-Mel 스펙트로그램 변환
@@ -60,6 +84,18 @@ class FeatureExtractor:
 
 
 def prepare_dataset(batch):
+    """
+    주어진 배치를 처리하여 데이터셋을 준비하는 함수입니다.
+
+    Args:
+        batch (dict): 처리할 배치 데이터의 딕셔너리. 다음 키를 포함해야 합니다:
+            - "audio" (dict): 오디오 데이터를 포함하는 딕셔너리. 다음 키를 포함해야 합니다:
+                - "array" (ndarray): 오디오 데이터의 배열.
+            - "labels" (list): 레이블 데이터의 리스트.
+
+    Returns:
+        dict: "input_features"와 "labels" 키만 포함하는 새로운 딕셔너리. "input_features"는 로그 멜 스펙트로그램의 첫 번째 프레임을 CPU로 이동한 값입니다.
+    """
     
     # 오디오 파일을 16kHz로 로드
     audio = batch["audio"]
@@ -88,6 +124,16 @@ def load_dataset(json_file):
 
 # 파일 경로 참조해서 오디오, set_num 데이터 정답 라벨 불러오기
 def getLabels(json_path, set_num):
+    """
+    주어진 JSON 파일에서 set_num에 해당하는 데이터를 필터링하여 데이터프레임으로 반환합니다.
+    
+    Parameters:
+        json_path (str): JSON 파일의 경로
+        set_num (int): 필터링할 데이터의 set 번호
+    
+    Returns:
+        pandas.DataFrame: 필터링된 데이터의 데이터프레임
+    """
     
     # JSON 파일 로드
     json_dataset = load_dataset(json_path)
@@ -102,7 +148,16 @@ def getLabels(json_path, set_num):
 
 # Sampling rate 16,000khz 전처리 + 라벨 전처리를 통해 데이터셋 생성
 def df_transform(batch_size, prepare_dataset):
-    # 오디오 파일 경로를 dict의 "audio" 키의 value로 넣고 이를 데이터셋으로 변환
+    """
+    주어진 데이터프레임을 처리하여 데이터셋으로 변환하는 함수입니다.
+
+    Args:
+        batch_size (int): 배치 크기입니다.
+        prepare_dataset (Callable): 데이터셋을 준비하는 함수입니다.
+
+    Returns:
+        Dataset: 변환된 전체 데이터셋입니다.
+    """
     batches = []
     for i in tqdm(range(0, len(df), batch_size), desc="Processing batches"):
         batch_df = df.iloc[i:i+batch_size]
@@ -125,6 +180,15 @@ def df_transform(batch_size, prepare_dataset):
 
 # 데이터셋을 훈련 데이터와 테스트 데이터, 밸리데이션 데이터로 분할
 def make_dataset(full_dataset):
+    """
+    데이터셋을 생성하는 함수입니다.
+
+    Parameters:
+        full_dataset (Dataset): 전체 데이터셋
+
+    Returns:
+        datasets (DatasetDict): 학습, 테스트, 검증 데이터셋을 포함한 데이터셋 딕셔너리
+    """
     train_testvalid = full_dataset.train_test_split(test_size=0.2)
     test_valid = train_testvalid["test"].train_test_split(test_size=0.5)
     datasets = DatasetDict(
@@ -136,7 +200,17 @@ def make_dataset(full_dataset):
 
 # 허깅페이스 로그인 후, 최종 데이터셋을 업로드
 def upload_huggingface(dataset_name, datasets, token):
+    """
+    Hugging Face 데이터셋을 업로드하는 함수입니다.
     
+    Parameters:
+        dataset_name (str): 업로드할 데이터셋의 이름입니다.
+        datasets (object): Hugging Face의 datasets 모듈 객체입니다.
+        token (str): Hugging Face API 토큰입니다.
+        
+    Returns:
+        None
+    """
     while True:
         
         if token =="exit":

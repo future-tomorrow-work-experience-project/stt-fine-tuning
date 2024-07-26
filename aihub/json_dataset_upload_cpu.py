@@ -7,7 +7,9 @@
 # !pip install jiwer
 # !pip install nlptutti
 # !huggingface-cli login --token token
-
+'''
+데이터셋을 허깅페이스로 업로드하는 코드에요. 이 코드는 CPU로 작동해요.
+'''
 import os
 import json
 from pydub import AudioSegment
@@ -20,18 +22,27 @@ import shutil
 
 # 사용자 지정 변수를 설정해요.
 
-set_num = 12                                                                       # 데이터셋 번호
+set_num = 12                                                                      # 데이터셋 번호
 token = "hf_"                                   # 허깅페이스 토큰
 CACHE_DIR = '/mnt/a/maxseats/.cache_' + str(set_num)                              # 허깅페이스 캐시 저장소 지정
 dataset_name = "maxseats/aihub-464-preprocessed-680GB-set-" + str(set_num)        # 허깅페이스에 올라갈 데이터셋 이름
 model_name = "SungBeom/whisper-small-ko"                                          # 대상 모델 / "openai/whisper-base"
-batch_size = 500                                                                 # 배치사이즈 지정, 8000이면 에러 발생
+batch_size = 500                                                                  # 배치사이즈 지정, 8000이면 에러 발생
 
 json_path = '/mnt/a/maxseats/mp3_dataset.json'                                    # 생성한 json 데이터셋 위치
 
 print('현재 데이터셋 : ', 'set_', set_num)
 
 def prepare_dataset(batch):
+    """
+    데이터셋을 준비하는 함수입니다.
+
+    Parameters:
+        batch (dict): 데이터 배치를 나타내는 딕셔너리입니다.
+
+    Returns:
+        dict: 'input_features'와 'labels'만 포함한 새로운 딕셔너리를 반환합니다.
+    """
     # 오디오 파일을 16kHz로 로드
     audio = batch["audio"]
 
@@ -49,6 +60,16 @@ def load_dataset(json_file):
 
 # 파일 경로 참조해서 오디오, set_num 데이터 정답 라벨 불러오기
 def getLabels(json_path, set_num):
+    """
+    주어진 JSON 파일에서 set_num에 해당하는 데이터를 필터링하여 데이터프레임으로 반환합니다.
+    
+    Parameters:
+        json_path (str): JSON 파일의 경로
+        set_num (int): 필터링할 데이터의 set 번호
+    
+    Returns:
+        pandas.DataFrame: 필터링된 데이터의 데이터프레임
+    """
     
     # JSON 파일 로드
     json_dataset = load_dataset(json_path)
@@ -63,6 +84,16 @@ def getLabels(json_path, set_num):
 
 # Sampling rate 16,000khz 전처리 + 라벨 전처리를 통해 데이터셋 생성
 def df_transform(batch_size, prepare_dataset):
+    """
+    주어진 데이터프레임을 처리하여 데이터셋으로 변환하는 함수입니다.
+
+    Args:
+        batch_size (int): 배치 크기입니다.
+        prepare_dataset (callable): 데이터셋을 준비하는 함수입니다.
+
+    Returns:
+        Dataset: 변환된 전체 데이터셋입니다.
+    """
     # 오디오 파일 경로를 dict의 "audio" 키의 value로 넣고 이를 데이터셋으로 변환
     batches = []
     for i in tqdm(range(0, len(df), batch_size), desc="Processing batches"):
@@ -86,6 +117,15 @@ def df_transform(batch_size, prepare_dataset):
 
 # 데이터셋을 훈련 데이터와 테스트 데이터, 밸리데이션 데이터로 분할
 def make_dataset(full_dataset):
+    """
+    데이터셋을 생성하는 함수입니다.
+
+    Parameters:
+        full_dataset (Dataset): 전체 데이터셋
+
+    Returns:
+        datasets (DatasetDict): 학습, 테스트, 검증 데이터셋으로 구성된 데이터셋 딕셔너리
+    """
     train_testvalid = full_dataset.train_test_split(test_size=0.2)
     test_valid = train_testvalid["test"].train_test_split(test_size=0.5)
     datasets = DatasetDict(
@@ -97,7 +137,17 @@ def make_dataset(full_dataset):
 
 # 허깅페이스 로그인 후, 최종 데이터셋을 업로드
 def upload_huggingface(dataset_name, datasets, token):
-    
+    """
+    Hugging Face 데이터셋을 업로드하는 함수입니다.
+
+    Parameters:
+        dataset_name (str): 업로드할 데이터셋의 이름입니다.
+        datasets (object): Hugging Face의 datasets 모듈 객체입니다.
+        token (str): Hugging Face API 토큰입니다.
+
+    Returns:
+        None
+    """
     while True:
         
         if token =="exit":

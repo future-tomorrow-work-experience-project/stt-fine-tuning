@@ -21,13 +21,13 @@ from huggingface_hub import create_repo, Repository
 import os
 import shutil
 import re
-import math # 임시 테스트용
+import math
 
 import logging
 import sys
 import stat
 
-model_dir = "./tmp" # 수정 X
+model_dir = "./tmp" # 학습된 모델이 임시로 저장되는 디렉토리입니다. 허깅페이스로 업로드 된 후 자동으로 삭제됩니다.
 
 # # 로깅 설정
 # log_file = './finetuning_output.log'
@@ -66,6 +66,7 @@ model_dir = "./tmp" # 수정 X
 #########################################################################################################################################
 
 start_num = 55                                      # 시작할 데이터셋 번호
+last_num = 68                                       # 마지막 데이터셋 번호
 
 is_test = False                                     # True: 소량의 샘플 데이터로 테스트, False: 실제 파인튜닝
 
@@ -108,6 +109,15 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     processor: Any
 
     def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
+        """
+        입력된 features를 처리하여 패딩된 배치를 반환하는 함수입니다.
+
+        Parameters:
+            features (List[Dict[str, Union[List[int], torch.Tensor]]]): 입력 features 리스트입니다.
+
+        Returns:
+            Dict[str, torch.Tensor]: 패딩된 배치입니다.
+        """
         # 인풋 데이터와 라벨 데이터의 길이가 다르며, 따라서 서로 다른 패딩 방법이 적용되어야 한다. 그러므로 두 데이터를 분리해야 한다.
         # 먼저 오디오 인풋 데이터를 간단히 토치 텐서로 반환하는 작업을 수행한다.
         input_features = [{"input_features": feature["input_features"]} for feature in features]
@@ -132,6 +142,15 @@ class DataCollatorSpeechSeq2SeqWithPadding:
 
 
 def compute_metrics(pred):
+    """
+    모델의 예측 결과와 실제 레이블을 사용하여 CER(Character Error Rate)를 계산하는 함수입니다.
+
+    Parameters:
+        pred: 모델의 예측 결과를 담은 객체
+
+    Returns:
+        dict: CER(Character Error Rate) 값을 담은 딕셔너리
+    """
     pred_ids = pred.predictions
     label_ids = pred.label_ids
 
@@ -189,7 +208,16 @@ def set_mlflow_env(model_name):
 
 # 파인튜닝을 진행하고자 하는 모델의 processor, tokenizer, feature extractor, model, data_collator, metric 로드
 def get_model_variable(model_name, device):
+    """
+    주어진 모델 이름과 장치(device)를 기반으로 모델 변수들을 가져옵니다.
 
+    Parameters:
+        model_name (str): 모델 이름
+        device: 모델이 실행될 장치
+
+    Returns:
+        tuple: processor, tokenizer, feature_extractor, model, data_collator, metric로 구성된 튜플
+    """
     processor = WhisperProcessor.from_pretrained(model_name, language="Korean", task="transcribe")
     tokenizer = WhisperTokenizer.from_pretrained(model_name, language="Korean", task="transcribe")
     feature_extractor = WhisperFeatureExtractor.from_pretrained(model_name)
@@ -204,6 +232,15 @@ def get_model_variable(model_name, device):
     return processor, tokenizer, feature_extractor, model, data_collator, metric
 
 def login_huggingface(token):
+    """
+    Hugging Face에 로그인하는 함수입니다.
+
+    Parameters:
+        token (str): Hugging Face API 토큰
+
+    Returns:
+        None
+    """
     while True: # 로그인
         if token =="exit":
             break
@@ -217,12 +254,20 @@ def login_huggingface(token):
             print("Please enter your Hugging Face API token:", end=" ")
             token = input().strip()
 
-
     os.environ["HUGGINGFACE_HUB_TOKEN"] = token
 
 # model_dir 필요한 파일 복사
-def copy_model(moder_dir, tokenizer):
+def copy_model(model_dir, tokenizer):
+    """
+    주어진 모델 디렉토리에서 모델 파일과 토크나이저를 복사합니다.
 
+    Parameters:
+        model_dir (str): 복사할 모델 디렉토리 경로
+        tokenizer: 토크나이저 객체
+
+    Returns:
+        None
+    """
     max_depth = 1  # 순회할 최대 깊이
 
     for root, dirs, files in os.walk(model_dir):
@@ -238,7 +283,17 @@ def copy_model(moder_dir, tokenizer):
 
 # 허깅페이스 readme 작성
 def write_readme(dataset_name, model_name, model_description):
+    """
+    README 파일을 작성하는 함수입니다.
 
+    Parameters:
+        dataset_name (str): 데이터셋 이름
+        model_name (str): 모델 이름
+        model_description (str): 모델 설명
+
+    Returns:
+        None
+    """
     readme = f"""
 ---
 language: ko
@@ -259,8 +314,22 @@ metrics:
     with open("./repo/README.md", "w") as f:
         f.write(readme)
 
-# 허깅페이스로 모델 업로드
 def upload_huggingface(token, repo_name, model_dir, tokenizer, dataset_name, model_name, model_description):
+    """
+    Hugging Face 모델을 업로드하는 함수입니다.
+
+    Parameters:
+        token (str): Hugging Face 토큰
+        repo_name (str): 업로드할 레포지토리 이름
+        model_dir (str): 모델 디렉토리 경로
+        tokenizer: 토크나이저 객체
+        dataset_name (str): 데이터셋 이름
+        model_name (str): 모델 이름
+        model_description (str): 모델 설명
+
+    Returns:
+        None
+    """
     login_huggingface(token)
     create_repo(repo_name, exist_ok=True)
     repo = Repository(local_dir='./repo', clone_from=f"{repo_name}")
@@ -268,9 +337,17 @@ def upload_huggingface(token, repo_name, model_dir, tokenizer, dataset_name, mod
     write_readme(dataset_name, model_name, model_description)
     repo.push_to_hub(commit_message="Initial commit")
 
-# 라벨 추가 전처리
-def additional_preprocess(text):
 
+def additional_preprocess(text):
+    """
+    주어진 텍스트를 전처리하는 함수입니다.
+
+    Parameters:
+        text (str): 전처리할 텍스트
+
+    Returns:
+        str: 전처리된 텍스트
+    """
     text = re.sub(r'/\([^\)]+\)', '', text)  # /( *) 패턴 제거, /(...) 형식 제거
     text = text.replace('\n', '')
     # text = re.sub(r'\(([^/]+)\/([^)]+)\)', r'\1', text)
@@ -288,9 +365,17 @@ def additional_preprocess(text):
     return text.strip()
 
 def preprocess_batch(batch):
+    """
+    주어진 배치를 전처리하는 함수입니다.
 
+    Parameters:
+        batch (dict): 전처리할 배치 데이터
+
+    Returns:
+        dict: 전처리된 배치 데이터
+    """
     # transcripts 컬럼 전처리
-    batch["labels"] = additional_preprocess( batch["labels"] )
+    batch["labels"] = additional_preprocess(batch["labels"])
 
     # label ids로 변환
     batch["labels"] = tokenizer(batch["labels"]).input_ids
@@ -298,6 +383,19 @@ def preprocess_batch(batch):
     return batch
 
 def finetune_one_block(set_num, load_num, is_test, training_args, token):
+    """
+    주어진 데이터셋을 사용하여 모델을 파인튜닝하는 함수입니다.
+
+    Parameters:
+        set_num (int): 파인튜닝 데이터셋의 번호.
+        load_num (int): 불러온 모델의 번호.
+        is_test (bool): 테스트 모드 여부.
+        training_args: 학습에 필요한 인자들.
+        token: Hugging Face에 업로드하기 위한 토큰.
+
+    Returns:
+        None
+    """
     model_description = f"""
     - 파인튜닝 데이터셋 : maxseats/aihub-464-preprocessed-680GB-set-{set_num}
 
@@ -376,8 +474,11 @@ def finetune_one_block(set_num, load_num, is_test, training_args, token):
     
 #############################################################   MAIN 시작   ############################################################################
 
+'''
+마지막 번호의 데이터셋을 파인튜닝 할 때 까지 코드가 반복 실행되어요.
+'''
 
-while start_num < 69:
+while start_num <= last_num:
     try:
         logging.debug("Starting main block")
         device = check_GPU()  # GPU 사용 설정
